@@ -73,6 +73,45 @@ vim.keymap.set("n", "<leader>x", function()
     vim.lsp.buf.format({ async = true })
 end, { desc = "Format file" })
 
+local function get_alt_file()
+    local buf = vim.api.nvim_buf_get_name(0)
+    if buf == "" then return nil end
+    local dir, name, ext = vim.fn.fnamemodify(buf, ":h"), vim.fn.fnamemodify(buf, ":t:r"),
+        vim.fn.fnamemodify(buf, ":e"):lower()
+    local map = { h = { "cpp", "c", "cc", "cxx" }, hpp = { "cpp", "c", "cc", "cxx" }, cpp = { "h", "hpp", "hxx" }, c = { "h", "hpp", "hxx" }, cc = { "h", "hpp", "hxx" }, cxx = { "h", "hpp", "hxx" } }
+    local targets = map[ext]
+    if not targets then return nil end
+
+    local dirs = { dir }
+    if dir:match("/src/") then table.insert(dirs, dir:gsub("/src/", "/include/")) end
+    if dir:match("/include/") then table.insert(dirs, dir:gsub("/include/", "/src/")) end
+
+    for _, d in ipairs(dirs) do
+        for _, e in ipairs(targets) do
+            local f = d .. "/" .. name .. "." .. e
+            if vim.fn.filereadable(f) == 1 then return f end
+        end
+    end
+
+    for _, e in ipairs(targets) do
+        local f = vim.fs.find(name .. "." .. e, { path = vim.fn.getcwd(), type = "file", limit = 1 })
+        if #f > 0 then return f[1] end
+    end
+    return nil
+end
+
+vim.keymap.set("n", "<leader>af", function()
+    local f = get_alt_file()
+    if f then vim.cmd.edit(f) else vim.cmd("FzfLua files query=" ..
+        vim.fn.fnamemodify(vim.api.nvim_buf_get_name(0), ":t:r")) end
+end, { desc = "Alternate file (h/cpp)" })
+
+vim.keymap.set("n", "<leader>as", function()
+    local f = get_alt_file()
+    if f then vim.cmd.vsplit(f) else vim.cmd("FzfLua files query=" ..
+        vim.fn.fnamemodify(vim.api.nvim_buf_get_name(0), ":t:r")) end
+end, { desc = "Alternate file in vsplit" })
+
 vim.api.nvim_create_autocmd("BufReadPost", {
     group = vim.api.nvim_create_augroup("last_loc", { clear = true }),
     callback = function()
