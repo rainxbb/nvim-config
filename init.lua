@@ -146,7 +146,7 @@ require("lazy").setup({
     {
         "nvim-treesitter/nvim-treesitter",
         build = ":TSUpdate",
-        main = "nvim-treesitter.configs",
+        main = "nvim-treesitter",
         dependencies = {
             "nvim-treesitter/nvim-treesitter-textobjects",
             "JoosepAlviste/nvim-ts-context-commentstring",
